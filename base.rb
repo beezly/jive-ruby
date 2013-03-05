@@ -1,8 +1,9 @@
 require 'rubygems'
 require 'httparty'
+require 'uri'
 
 class JiveContainer
-  attr_reader :name, :type, :id, :raw_data
+  attr_reader :name, :type, :id, :raw_data, :self_uri
   
   def initialize instance, data
     @raw_data = data
@@ -11,6 +12,7 @@ class JiveContainer
     @type = data["type"]
     @id = data["id"]
     @display_name = data["displayName"]
+    @self_uri = data["resources"]["self"]["ref"]
   end
 end
 
@@ -103,7 +105,7 @@ class JiveApi
     begin
       response = self.class.get next_uri, options
       options.reject! { |k,v| k == :query }
-      next_uri = response.parsed_response["links"] and response.parsed_response["links"]["next"] ? response.parsed_response["links"]["next"] : nil
+      next_uri = (response.parsed_response["links"] and response.parsed_response["links"]["next"] ) ? response.parsed_response["links"]["next"] : nil
       list = response.parsed_response["list"]
       result.concat list
       yield list if block_given?
@@ -132,6 +134,14 @@ class JiveApi
       paginated_get('/api/core/v3/places', options).map { |place| JivePlace.new self, place }
     end
   end
+
+  def contents options = {}, &block
+    if block
+      paginated_get('/api/core/v3/contents', options) { |list| block.call list }
+    else 
+      paginated_get('/api/core/v3/contents', options).map { |content| JiveContent.new self, content }
+    end
+  end
   
   def activities options = {}, &block
     if block 
@@ -151,6 +161,11 @@ class JiveApi
   
   def groups
     places :query => { :filter => "type(group)" }
+  end
+
+  def contents_by_username username
+    user = person_by_username username
+    contents :query => { :filter => "author(#{user.self_uri})" }
   end
   
   headers 'Accept' => 'application/json'
