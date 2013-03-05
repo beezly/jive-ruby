@@ -13,6 +13,12 @@ class JiveContainer
     @id = data["id"]
     @display_name = data["displayName"]
     @self_uri = data["resources"]["self"]["ref"]
+    @parent_uri = data["parent"]
+  end
+
+  def parent
+    ret = @api_instance.class.get @parent_uri
+    Object.const_get("Jive#{type.capitalize}").new @api_instance, ret
   end
 end
 
@@ -20,6 +26,18 @@ class JiveContent < JiveContainer
   def initialize instance, data
     super instance, data
   end
+end
+
+class JiveDocument < JiveContent
+end
+
+class JiveDiscussion < JiveContent
+end
+
+class JiveFile < JiveContent
+end
+
+class JivePoll < JiveContent
 end
 
 class JiveBlogPost < JiveContent
@@ -64,6 +82,30 @@ class JivePlace < JiveContainer
     @parent = data["parent"]
     @ref = data["resources"]["self"]["ref"]
     @html_uri = data["resources"]["html"]["ref"]
+  end
+  
+  def content
+    filter  = "place(#{@self_uri})"
+    ret = []
+    @api_instance.paginated_get '/api/core/v3/contents', :query => { :filter => "#{filter}" } do |list|
+      ret << list.map do |item|
+        object_class = Object.const_get "Jive#{item['type'].capitalize}"
+        object_class.new self, item
+      end
+    end
+    ret.flatten 1
+  end
+end
+
+class JiveGroup < JivePlace
+  def initialize instance, data
+    super instance, data
+  end
+end
+
+class JiveSpace < JivePlace
+  def initialize instance, data
+    super instance, data
   end
 end
 
@@ -151,18 +193,33 @@ class JiveApi
     end
   end
   
-  def blogs
-    places :query => { :filter => "type(blog)" }
+  def places_by_filter filter
+    ret = []
+    places :query => { :filter => "#{filter}" } do |list|
+      ret << list.map do |item|
+        object_class = Object.const_get "Jive#{item['type'].capitalize}"
+        object_class.new self, item
+      end
+    end
+    ret.flatten 1
   end
   
-  def spaces
-    places :query => { :filter => "type(space)" }
+  def places_by_type object_type
+    places_by_filter "type(#{object_type})"
   end
-  
-  def groups
-    places :query => { :filter => "type(group)" }
-  end
+ 
+  def blogs 
+    places_by_type "blog"
+  end 
 
+  def spaces
+    places_by_type "space"
+  end
+  
+  def group
+    places_by_type "group"
+  end
+  
   def contents_by_username username
     user = person_by_username username
     contents :query => { :filter => "author(#{user.self_uri})" }
