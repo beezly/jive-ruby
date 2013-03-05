@@ -2,7 +2,7 @@ require 'rubygems'
 require 'httparty'
 
 class JiveContainer
-  attr_reader :name, :type, :id
+  attr_reader :name, :type, :id, :raw_data
   
   def initialize instance, data
     @raw_data = data
@@ -11,6 +11,28 @@ class JiveContainer
     @type = data["type"]
     @id = data["id"]
     @display_name = data["displayName"]
+  end
+end
+
+class JiveContent < JiveContainer
+  def initialize instance, data
+    super instance, data
+  end
+end
+
+class JiveBlogPost < JiveContent
+  def initialize instance, data
+    super instance, data
+    @comments_uri = data["resources"]["comments"]["ref"]
+    @attachments_uri = data["resources"]["attachments"]["ref"]
+  end
+
+  def comments
+    @api_instance.paginated_get(@comments_uri).map { |comment| JiveContent.new @api_instance, comment } if @comments_uri
+  end
+
+  def attachments
+    @api_instance.paginated_get(@attachments_uri).map { |attachment| JiveContent.new @api_instance, attachment } if @attachments_uri
   end
 end
 
@@ -26,7 +48,7 @@ class JivePerson < JiveContainer
   def blog
     ret = @api_instance.class.get "/api/core/v3/people/#{@id}/blog"
     raise ret if ret.has_key? 'error'
-    JivePlace.new @api_instance, ret
+    JiveBlog.new @api_instance, ret
   end
 end
 
@@ -43,13 +65,25 @@ class JivePlace < JiveContainer
   end
 end
 
+class JiveBlog < JivePlace
+  def initialize instance, data
+    super instance, data
+    @contents_uri = data["resources"]["contents"]["ref"]
+  end
+  
+  def posts
+    @api_instance.paginated_get(@contents_uri).map { |post| JiveBlogPost.new @api_instance, post }
+  end
+
+end
+
 class JiveApi
   include HTTParty
 
   class JiveParser < HTTParty::Parser
     SupportFormats = { "application/json" => :json }
     def parse
-      body.slice! /throw.*;\s*/
+      body.slice!(/throw.*;\s*/)
       super
     end
   end
@@ -69,7 +103,7 @@ class JiveApi
     begin
       response = self.class.get next_uri, options
       options.reject! { |k,v| k == :query }
-      next_uri = response.parsed_response["links"]["next"] ? response.parsed_response["links"]["next"] : nil
+      next_uri = response.parsed_response["links"] and response.parsed_response["links"]["next"] ? response.parsed_response["links"]["next"] : nil
       list = response.parsed_response["list"]
       result.concat list
       yield list if block_given?
