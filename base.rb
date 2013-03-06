@@ -1,9 +1,10 @@
 require 'rubygems'
 require 'httparty'
 require 'uri'
+require 'date'
 
 class JiveContainer
-  attr_reader :name, :type, :id, :raw_data, :self_uri
+  attr_reader :name, :type, :id, :raw_data, :self_uri, :subject
   
   def initialize instance, data
     @raw_data = data
@@ -14,46 +15,96 @@ class JiveContainer
     @display_name = data["displayName"]
     @self_uri = data["resources"]["self"]["ref"]
     @parent_uri = data["parent"]
+    @subject = data["subject"]
+  end
+
+  def display_path
+    if parent.nil? 
+      "#{@display_name}" 
+    else 
+      "#{parent.display_path}/#{@display_name}"
+    end
+  end
+
+  def uri
+    @self_uri
   end
 
   def parent
-    ret = @api_instance.class.get @parent_uri
-    Object.const_get("Jive#{type.capitalize}").new @api_instance, ret
+    @api_instance.get_container_by_uri @parent_uri if @parent_uri
   end
 end
 
 class JiveContent < JiveContainer
+  attr_reader :updated_at 
+  
   def initialize instance, data
     super instance, data
+    @display_name = data["name"]
+    @updated_at = DateTime.iso8601 data["updated"]
   end
+  
+  def author
+    # Let's try being clever here and including the data Jive already sent back
+     Object.const_get("Jive#{@raw_data['author']['type'].capitalize}").new @api_instance, @raw_data['author']
+  end
+  
 end
 
 class JiveDocument < JiveContent
+  def initialize instance, data
+    super instance, data
+  end
 end
 
 class JiveDiscussion < JiveContent
+  def initialize instance, data
+    super instance, data
+  end
 end
 
 class JiveFile < JiveContent
+  def initialize instance, data
+    super instance, data
+  end
 end
 
 class JivePoll < JiveContent
-end
-
-class JiveBlogPost < JiveContent
   def initialize instance, data
     super instance, data
-    @comments_uri = data["resources"]["comments"]["ref"]
-    @attachments_uri = data["resources"]["attachments"]["ref"]
+  end
+end
+
+class JiveComment < JiveContent
+end
+
+class JivePost < JiveContent
+  def initialize instance, data
+    super instance, data
+    @display_name = data["subject"]
+    @comments_uri = data["resources"]["comments"]["ref"] if data["resources"].has_key? "comments"
+    @attachments_uri = data["resources"]["attachments"]["ref"] if data["resources"].has_key? "attachments"
   end
 
   def comments
-    @api_instance.paginated_get(@comments_uri).map { |comment| JiveContent.new @api_instance, comment } if @comments_uri
+    @api_instance.get_container_by_uri @comments_uri if @comments_uri
   end
 
   def attachments
-    @api_instance.paginated_get(@attachments_uri).map { |attachment| JiveContent.new @api_instance, attachment } if @attachments_uri
+    @api_instance.get_container_by_uri @attachments_uri if @attachments_uri
   end
+end
+
+class JiveUpdate < JiveContent
+end
+
+class JiveFavorite < JiveContent
+end
+
+class JiveTask < JiveContent
+end
+
+class JiveIdea < JiveContent
 end
 
 class JivePerson < JiveContainer
@@ -63,23 +114,26 @@ class JivePerson < JiveContainer
     super instance, data 
     @username = data["username"]
     @status = data["status"]
+    @blog_uri = data["resources"]["blog"]["ref"] if data["resources"].has_key? 'blog'
   end
   
   def blog
-    ret = @api_instance.class.get "/api/core/v3/people/#{@id}/blog"
-    raise ret if ret.has_key? 'error'
-    JiveBlog.new @api_instance, ret
+    @blog_uri ? @api_instance.get_container_by_uri(@blog_uri) : nil
+  end
+  
+  def content filters = []
+    filters += ["author(#{uri})"]
+    @api_instance.contents :query => { :filter => filters }
   end
 end
 
 class JivePlace < JiveContainer
-  attr_reader :description, :status, :parent, :ref, :html_uri
+  attr_reader :description, :status, :ref, :html_uri
   
   def initialize instance, data
     super instance, data 
     @description = data["description"]
     @status = data["status"]
-    @parent = data["parent"]
     @ref = data["resources"]["self"]["ref"]
     @html_uri = data["resources"]["html"]["ref"]
   end
@@ -101,6 +155,10 @@ class JiveGroup < JivePlace
   def initialize instance, data
     super instance, data
   end
+  
+  def creator
+    Object.const_get("Jive#{@raw_data['creator']['type'].capitalize}").new @api_instance, @raw_data['creator']
+  end
 end
 
 class JiveSpace < JivePlace
@@ -109,20 +167,29 @@ class JiveSpace < JivePlace
   end
 end
 
+class JiveProject < JivePlace
+  def initialize instance, data
+    super instance, data
+  end
+end
+
 class JiveBlog < JivePlace
   def initialize instance, data
     super instance, data
+    @display_name = data["name"]
     @contents_uri = data["resources"]["contents"]["ref"]
   end
   
   def posts
-    @api_instance.paginated_get(@contents_uri).map { |post| JiveBlogPost.new @api_instance, post }
+    @api_instance.paginated_get(@contents_uri).map { |post| JivePost.new @api_instance, post }
   end
 
 end
 
 class JiveApi
   include HTTParty
+  
+  disable_rails_query_string_format
 
   class JiveParser < HTTParty::Parser
     SupportFormats = { "application/json" => :json }
@@ -144,64 +211,76 @@ class JiveApi
   def paginated_get path, options = {}, &block
     result = []
     next_uri = path
+    
+    # count doesn't work as expected in paginated requests, so we have a limit option
+    if options.has_key? :limit
+      limit = options[:limit]
+      options.delete :limit
+    else
+      limit = nil
+    end
+    
+    results_so_far = 0
     begin
       response = self.class.get next_uri, options
-      options.reject! { |k,v| k == :query }
+      raise Error if response.parsed_response.has_key? 'error'
+      options.delete :query
       next_uri = (response.parsed_response["links"] and response.parsed_response["links"]["next"] ) ? response.parsed_response["links"]["next"] : nil
       list = response.parsed_response["list"]
+      list = list ? list : []
       result.concat list
       yield list if block_given?
-    end while next_uri
+      results_so_far+=list.count 
+    end while next_uri and (limit.nil? or results_so_far < limit ) 
     result
   end
   
   def people options = {}, &block
-    if block 
-      paginated_get('/api/core/v3/people', options) { |list| block.call list }
-    else 
-      paginated_get('/api/core/v3/people', options).map { |person| JivePerson.new self, person }
-    end
+    get_containers_by_type 'people', options, &block
   end
   
   def person_by_username username
-    ret = self.class.get "/api/core/v3/people/username/#{username}"
-    raise ret if ret.has_key? 'error'
-    JivePerson.new self, ret
+    get_container_by_uri "/api/core/v3/people/username/#{username}"
   end
   
   def places options = {}, &block
-    if block 
-      paginated_get('/api/core/v3/places', options) { |list| block.call list }
-    else 
-      paginated_get('/api/core/v3/places', options).map { |place| JivePlace.new self, place }
-    end
+    get_containers_by_type 'places', options, &block
   end
 
   def contents options = {}, &block
-    if block
-      paginated_get('/api/core/v3/contents', options) { |list| block.call list }
-    else 
-      paginated_get('/api/core/v3/contents', options).map { |content| JiveContent.new self, content }
-    end
+    get_containers_by_type 'contents', options, &block
   end
   
   def activities options = {}, &block
-    if block 
-      paginated_get('/api/core/v3/activities', options) { |list| block.call list }
-    else 
-      paginated_get('/api/core/v3/activities', options).map { |activity| JiveActivity.new self, activity }
+    get_containers_by_type 'activity', options, &block
+  end
+  
+  def get_containers_by_type type, options, &block
+    next_uri = "/api/core/v3/#{type}"
+    paginated_get(next_uri, options).map do |data|
+      object_class = Object.const_get "Jive#{data['type'].capitalize}"
+      object_class.new self, data
+    end
+  end
+  
+  def get_container_by_uri uri
+    # Doesn't handle paginated queries yet
+    data = self.class.get uri
+    raise Error if data.parsed_response.has_key? 'error'
+    # We handle both lists and single items with this
+    if data.parsed_response.has_key? "list"
+      data.parsed_response['list'].map do |item|
+        object_class = Object.const_get "Jive#{item['type'].capitalize}"
+        object_class.new self, item
+      end
+    else
+      object_class = Object.const_get "Jive#{data.parsed_response['type'].capitalize}"
+      object_class.new self, data
     end
   end
   
   def places_by_filter filter
-    ret = []
-    places :query => { :filter => "#{filter}" } do |list|
-      ret << list.map do |item|
-        object_class = Object.const_get "Jive#{item['type'].capitalize}"
-        object_class.new self, item
-      end
-    end
-    ret.flatten 1
+    places ({ :query => { :filter => "#{filter}" }}) 
   end
   
   def places_by_type object_type
@@ -223,6 +302,14 @@ class JiveApi
   def contents_by_username username
     user = person_by_username username
     contents :query => { :filter => "author(#{user.self_uri})" }
+  end
+  
+  def search type, query, filters = []
+    filters += ["search(#{query})"]
+    paginated_get("/api/core/v3/search/#{type}", { :query => { :filter => filters } } ).map do |data|
+      object_class = Object.const_get "Jive#{data['type'].capitalize}"
+      object_class.new self, data
+    end
   end
   
   headers 'Accept' => 'application/json'
