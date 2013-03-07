@@ -2,6 +2,7 @@ require 'rubygems'
 require 'httparty'
 require 'uri'
 require 'date'
+require 'hashery/lru_hash'
 
 class JiveContainer
   attr_reader :name, :type, :id, :raw_data, :self_uri, :subject
@@ -20,9 +21,9 @@ class JiveContainer
 
   def display_path
     if parent.nil? 
-      "#{@display_name}" 
+      "#{self.class}:#{@display_name}" 
     else 
-      "#{parent.display_path}/#{@display_name}"
+      "#{parent.display_path}/#{self.class}:#{@display_name}"
     end
   end
 
@@ -60,6 +61,7 @@ end
 class JiveDiscussion < JiveContent
   def initialize instance, data
     super instance, data
+    @display_name = data['subject']
   end
 end
 
@@ -187,6 +189,7 @@ class JiveBlog < JivePlace
 end
 
 class JiveApi
+  attr_reader :object_cache
   include HTTParty
   
   disable_rails_query_string_format
@@ -200,6 +203,7 @@ class JiveApi
   end
   
   def initialize username, password, uri
+    @object_cache = Hashery::LRUHash.new 10000
     @auth = { :username => username, :password => password }
     self.class.base_uri uri
   end
@@ -229,7 +233,7 @@ class JiveApi
       list = response.parsed_response["list"]
       list = list ? list : []
       result.concat list
-      yield list if block_given?
+      list.map {|item| yield ((Object.const_get "Jive#{item['type'].capitalize}").new self, item) } if block_given?
       results_so_far+=list.count 
     end while next_uri and (limit.nil? or results_so_far < limit ) 
     result
@@ -257,25 +261,36 @@ class JiveApi
   
   def get_containers_by_type type, options, &block
     next_uri = "/api/core/v3/#{type}"
-    paginated_get(next_uri, options).map do |data|
-      object_class = Object.const_get "Jive#{data['type'].capitalize}"
-      object_class.new self, data
+    if block_given?
+      paginated_get(next_uri,options, &block)
+    else
+      paginated_get(next_uri, options).map do |data|
+        object_class = Object.const_get "Jive#{data['type'].capitalize}"
+        o = object_class.new self, data
+        @object_cache[o.uri] = o
+      end
     end
   end
   
   def get_container_by_uri uri
-    # Doesn't handle paginated queries yet
+    # Deliver from the object cache if we have it
+    return @object_cache[uri] if @object_cache.has_key? uri
     data = self.class.get uri
-    raise Error if data.parsed_response.has_key? 'error'
+    # raise Error if data.parsed_response.has_key? 'error'
+    return nil if data.parsed_response.has_key? 'error'
     # We handle both lists and single items with this
     if data.parsed_response.has_key? "list"
       data.parsed_response['list'].map do |item|
         object_class = Object.const_get "Jive#{item['type'].capitalize}"
-        object_class.new self, item
+        o = object_class.new self, item
+        @object_cache[o.uri] = o
+        o
       end
     else
       object_class = Object.const_get "Jive#{data.parsed_response['type'].capitalize}"
-      object_class.new self, data
+      o = object_class.new self, data
+      @object_cache[o.uri] = o
+      o
     end
   end
   
