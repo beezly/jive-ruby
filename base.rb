@@ -118,11 +118,11 @@ module Jive
   end
 
   class Person < Container
-    attr_reader :display_name, :username, :status
+    attr_reader :display_name, :userid, :status
 
     def initialize instance, data
       super instance, data 
-      @username = data["username"]
+      @userid = data["jive"]["username"]
       @status = data["status"]
       @blog_uri = data["resources"]["blog"]["ref"] if data["resources"].has_key? 'blog'
     end
