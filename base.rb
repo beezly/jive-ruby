@@ -6,7 +6,7 @@ require 'hashery/lru_hash'
 
 module Jive
   class Container
-    attr_reader :name, :type, :id, :raw_data, :self_uri, :subject
+    attr_reader :name, :type, :id, :raw_data, :self_uri, :subject, :display_name
 
     def initialize instance, data
       @raw_data = data
@@ -38,17 +38,22 @@ module Jive
   end
 
   class Content < Container
-    attr_reader :updated_at 
+    attr_reader :updated_at, :visibility 
 
     def initialize instance, data
       super instance, data
       @display_name = data["name"]
       @updated_at = DateTime.iso8601 data["updated"]
+      @visibility = data['visibility']
     end
 
     def author
       # Let's try being clever here and including the data Jive already sent back
       Jive.const_get("#{@raw_data['author']['type'].capitalize}").new @api_instance, @raw_data['author']
+    end
+    
+    def comments
+      @api_instance.get_container_by_uri @comments_uri if @comments_uri
     end
 
   end
@@ -89,10 +94,6 @@ module Jive
       @display_name = data["subject"]
       @comments_uri = data["resources"]["comments"]["ref"] if data["resources"].has_key? "comments"
       @attachments_uri = data["resources"]["attachments"]["ref"] if data["resources"].has_key? "attachments"
-    end
-
-    def comments
-      @api_instance.get_container_by_uri @comments_uri if @comments_uri
     end
 
     def attachments
@@ -158,6 +159,10 @@ module Jive
       end
       ret.flatten 1
     end
+    
+    def places
+      @api_instance.paginated_get "#{uri}/places"
+    end
   end
 
   class Group < Place
@@ -174,6 +179,7 @@ module Jive
     def initialize instance, data
       super instance, data
     end
+    
   end
 
   class Project < Place
@@ -196,7 +202,6 @@ module Jive
   end
 
   class Api
-    attr_reader :object_cache
     include HTTParty
 
     disable_rails_query_string_format
@@ -336,6 +341,10 @@ module Jive
         object_class = Jive.const_get "#{data['type'].capitalize}"
         object_class.new self, data
       end
+    end
+
+    def main_space
+      spaces.select { |space| space.raw_data[]}
     end
 
     headers 'Accept' => 'application/json'
