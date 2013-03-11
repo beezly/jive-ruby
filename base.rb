@@ -5,7 +5,7 @@ require 'date'
 require 'hashery/lru_hash'
 
 module Jive
-  class JiveContainer
+  class Container
     attr_reader :name, :type, :id, :raw_data, :self_uri, :subject
 
     def initialize instance, data
@@ -37,7 +37,7 @@ module Jive
     end
   end
 
-  class JiveContent < JiveContainer
+  class Content < Container
     attr_reader :updated_at 
 
     def initialize instance, data
@@ -48,42 +48,42 @@ module Jive
 
     def author
       # Let's try being clever here and including the data Jive already sent back
-      Object.const_get("Jive#{@raw_data['author']['type'].capitalize}").new @api_instance, @raw_data['author']
+      Jive.const_get("#{@raw_data['author']['type'].capitalize}").new @api_instance, @raw_data['author']
     end
 
   end
 
-  class JiveDocument < JiveContent
+  class Document < Content
     def initialize instance, data
       super instance, data
       @display_name = data["subject"]
     end
   end
 
-  class JiveDiscussion < JiveContent
+  class Discussion < Content
     def initialize instance, data
       super instance, data
       @display_name = data['subject']
     end
   end
 
-  class JiveFile < JiveContent
+  class File < Content
     def initialize instance, data
       super instance, data
     end
   end
 
-  class JivePoll < JiveContent
+  class Poll < Content
     def initialize instance, data
       super instance, data
       @display_name = data['subject']
     end
   end
 
-  class JiveComment < JiveContent
+  class Comment < Content
   end
 
-  class JivePost < JiveContent
+  class Post < Content
     def initialize instance, data
       super instance, data
       @display_name = data["subject"]
@@ -100,23 +100,23 @@ module Jive
     end
   end
 
-  class JiveUpdate < JiveContent
+  class Update < Content
     def initialize instance, data
       super instance, data
       @display_name = data['subject']
     end
   end
 
-  class JiveFavorite < JiveContent
+  class Favorite < Content
   end
 
-  class JiveTask < JiveContent
+  class Task < Content
   end
 
-  class JiveIdea < JiveContent
+  class Idea < Content
   end
 
-  class JivePerson < JiveContainer
+  class Person < Container
     attr_reader :display_name, :username, :status
 
     def initialize instance, data
@@ -136,7 +136,7 @@ module Jive
     end
   end
 
-  class JivePlace < JiveContainer
+  class Place < Container
     attr_reader :description, :status, :ref, :html_uri
 
     def initialize instance, data
@@ -152,7 +152,7 @@ module Jive
       ret = []
       @api_instance.paginated_get '/api/core/v3/contents', :query => { :filter => "#{filter}" } do |list|
         ret << list.map do |item|
-          object_class = Object.const_get "Jive#{item['type'].capitalize}"
+          object_class = Jive.const_get "#{item['type'].capitalize}"
           object_class.new self, item
         end
       end
@@ -160,29 +160,29 @@ module Jive
     end
   end
 
-  class JiveGroup < JivePlace
+  class Group < Place
     def initialize instance, data
       super instance, data
     end
 
     def creator
-      Object.const_get("Jive#{@raw_data['creator']['type'].capitalize}").new @api_instance, @raw_data['creator']
+      Jive.const_get("#{@raw_data['creator']['type'].capitalize}").new @api_instance, @raw_data['creator']
     end
   end
 
-  class JiveSpace < JivePlace
+  class Space < Place
     def initialize instance, data
       super instance, data
     end
   end
 
-  class JiveProject < JivePlace
+  class Project < Place
     def initialize instance, data
       super instance, data
     end
   end
 
-  class JiveBlog < JivePlace
+  class Blog < Place
     def initialize instance, data
       super instance, data
       @display_name = data["name"]
@@ -190,18 +190,18 @@ module Jive
     end
 
     def posts
-      @api_instance.paginated_get(@contents_uri).map { |post| JivePost.new @api_instance, post }
+      @api_instance.paginated_get(@contents_uri).map { |post| Post.new @api_instance, post }
     end
 
   end
 
-  class JiveApi
+  class Api
     attr_reader :object_cache
     include HTTParty
 
     disable_rails_query_string_format
 
-    class JiveParser < HTTParty::Parser
+    class JSONResponseParser < HTTParty::Parser
       SupportFormats = { "application/json" => :json }
       def parse
         body.slice!(/throw.*;\s*/)
@@ -240,7 +240,7 @@ module Jive
         list = response.parsed_response["list"]
         list = list ? list : []
         result.concat list
-        list.map {|item| yield ((Object.const_get "Jive#{item['type'].capitalize}").new self, item) } if block_given?
+        list.map {|item| yield ((Jive.const_get "#{item['type'].capitalize}").new self, item) } if block_given?
         results_so_far+=list.count 
       end while next_uri and (limit.nil? or results_so_far < limit ) 
       result
@@ -276,7 +276,7 @@ module Jive
         paginated_get(next_uri,options, &block)
       else
         paginated_get(next_uri, options).map do |data|
-          object_class = Object.const_get "Jive#{data['type'].capitalize}"
+          object_class = Jive.const_get "#{data['type'].capitalize}"
           o = object_class.new self, data
           @object_cache[o.uri] = o
         end
@@ -292,13 +292,13 @@ module Jive
       # We handle both lists and single items with this
       if data.parsed_response.has_key? "list"
         data.parsed_response['list'].map do |item|
-          object_class = Object.const_get "Jive#{item['type'].capitalize}"
+          object_class = Jive.const_get "#{item['type'].capitalize}"
           o = object_class.new self, item
           @object_cache[o.uri] = o
           o
         end
       else
-        object_class = Object.const_get "Jive#{data.parsed_response['type'].capitalize}"
+        object_class = Jive.const_get "#{data.parsed_response['type'].capitalize}"
         o = object_class.new self, data
         @object_cache[o.uri] = o
         o
@@ -333,7 +333,7 @@ module Jive
     def search type, query, filters = []
       filters += ["search(#{query})"]
       paginated_get("/api/core/v3/search/#{type}", { :query => { :filter => filters } } ).map do |data|
-        object_class = Object.const_get "Jive#{data['type'].capitalize}"
+        object_class = Jive.const_get "#{data['type'].capitalize}"
         object_class.new self, data
       end
     end
@@ -341,7 +341,7 @@ module Jive
     headers 'Accept' => 'application/json'
     headers 'Content-Type' => 'application/json'
     format :json
-    parser JiveParser
+    parser JSONResponseParser
 
   end
 end
