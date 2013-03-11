@@ -202,6 +202,7 @@ module Jive
   end
 
   class Api
+    attr_reader :object_cache
     include HTTParty
 
     disable_rails_query_string_format
@@ -221,12 +222,14 @@ module Jive
     end
 
     def api_version 
-      self.class.get '/api/version'
+      self.class.get '/api/version', {:basic_auth => @auth}
     end
 
     def paginated_get path, options = {}, &block
       result = []
       next_uri = path
+
+      options.merge!({:basic_auth => @auth})
 
       # count doesn't work as expected in paginated requests, so we have a limit option
       if options.has_key? :limit
@@ -245,7 +248,11 @@ module Jive
         list = response.parsed_response["list"]
         list = list ? list : []
         result.concat list
-        list.map {|item| yield ((Jive.const_get "#{item['type'].capitalize}").new self, item) } if block_given?
+        if block_given?
+          list.map do |item| 
+            yield ((Jive.const_get "#{item['type'].capitalize}").new self, item)
+          end
+        end
         results_so_far+=list.count 
       end while next_uri and (limit.nil? or results_so_far < limit ) 
       result
@@ -291,7 +298,7 @@ module Jive
     def get_container_by_uri uri
       # Deliver from the object cache if we have it
       return @object_cache[uri] if @object_cache.has_key? uri
-      data = self.class.get uri
+      data = self.class.get uri, { :basic_auth => @auth }
       # raise Error if data.parsed_response.has_key? 'error'
       return nil if data.parsed_response.has_key? 'error'
       # We handle both lists and single items with this
