@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'httparty'
+require 'net/http'
 require 'uri'
 require 'date'
 require 'hashery/lru_hash'
@@ -75,6 +76,16 @@ module Jive
   class File < Content
     def initialize instance, data
       super instance, data
+      @binary_url = data['binaryURL']
+    end
+    
+    def get
+      binary_uri = URI @binary_url
+      http = Net::HTTP.new(binary_uri.host, binary_uri.port)
+      req = Net::HTTP::Get.new binary_uri.request_uri
+      req.basic_auth @api_instance.auth[:username], @api_instance.auth[:password]
+      response = http.request req
+      response.body
     end
   end
 
@@ -202,7 +213,7 @@ module Jive
   end
 
   class Api
-    attr_reader :object_cache
+    attr_reader :object_cache, :auth
     include HTTParty
 
     disable_rails_query_string_format
