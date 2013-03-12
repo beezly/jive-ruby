@@ -161,19 +161,19 @@ module Jive
 
     def content
       filter  = "place(#{@self_uri})"
-      ret = []
-      @api_instance.paginated_get '/api/core/v3/contents', :query => { :filter => "#{filter}" } do |list|
-        ret << list.map do |item|
-          object_class = Jive.const_get "#{item['type'].capitalize}"
-          object_class.new self, item
-        end
+      @api_instance.paginated_get('/api/core/v3/contents', :query => { :filter => "#{filter}" }).map do |item|
+        object_class = Jive.const_get "#{item['type'].capitalize}"
+        object_class.new @api_instance, item
       end
-      ret.flatten 1
     end
     
-    def places
-      @api_instance.paginated_get "#{uri}/places"
+    def places filter = []
+      @api_instance.paginated_get("#{uri}/places", :query => { :filter => filter }).map do |item|
+        object_class = Jive.const_get "#{item['type'].capitalize}"
+        object_class.new @api_instance, item
+      end
     end
+    
   end
 
   class Group < Place
@@ -191,6 +191,9 @@ module Jive
       super instance, data
     end
     
+    def sub_spaces
+      places ["type(space)"]
+    end
   end
 
   class Project < Place
