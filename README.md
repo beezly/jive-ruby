@@ -25,4 +25,4 @@ Run it with;
 
     ruby ./content-csv.rb <username> <password> <url>
 
-Where URL is http://<servername>
+Where URL is http://*servername*
