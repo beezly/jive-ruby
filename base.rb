@@ -46,6 +46,7 @@ module Jive
       @display_name = data["name"]
       @updated_at = DateTime.iso8601 data["updated"]
       @visibility = data['visibility']
+      @content = data['content']['text']
     end
 
     def author
@@ -55,6 +56,10 @@ module Jive
     
     def comments
       @api_instance.get_container_by_uri @comments_uri if @comments_uri
+    end
+    
+    def get
+      @content
     end
 
   end
@@ -76,6 +81,11 @@ module Jive
     def initialize instance, data
       super instance, data
       @display_name = data['subject']
+      @messages_uri = data['resources']['messages']['ref']
+    end
+    
+    def messages
+      @api_instance.get_container_by_uri @messages_uri if @messages_uri
     end
   end
 
@@ -85,7 +95,7 @@ module Jive
     def initialize instance, data
       super instance, data
       @binary_url = data['binaryURL']
-      @mime_type = data['content']['type']
+      @mime_type = data['contentType']
     end
     
     def get
@@ -118,6 +128,17 @@ module Jive
 
     def attachments
       @api_instance.get_container_by_uri @attachments_uri if @attachments_uri
+    end
+  end
+  
+  class Message < Content
+    def initialize instance, data
+      super instance, data
+      @content = data["content"]["text"]
+    end
+    
+    def get
+      @content
     end
   end
 
