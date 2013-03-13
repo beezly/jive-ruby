@@ -80,9 +80,12 @@ module Jive
   end
 
   class File < Content
+    attr_reader :mime_type
+    
     def initialize instance, data
       super instance, data
       @binary_url = data['binaryURL']
+      @mime_type = data['content']['type']
     end
     
     def get
