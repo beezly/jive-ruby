@@ -11,3 +11,18 @@ To get going:
     j = Jive::Api '<username>', '<password>', '<uri of your jive server>'
     me = j.person_by_username '<username>'
     puts me.display_name
+
+Example
+-------
+
+There is some code in the /examples directory. 
+
+### content-csv.rb
+
+Creates a CSV file called output.csv with the author, type, update time, "path" (where in Jive the content is located) and name. 
+
+Run it with;
+
+    ruby ./content-csv.rb <username> <password> <url>
+
+Where URL is http://<servername>
