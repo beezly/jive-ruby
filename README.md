@@ -7,7 +7,7 @@ Apologies, but the documentation is low down on my list of priorities for the pr
 
 To get going:
 
-    require './base'
+    require 'jive_api'
     j = Jive::Api '<username>', '<password>', '<uri of your jive server>'
     me = j.person_by_username '<username>'
     puts me.display_name

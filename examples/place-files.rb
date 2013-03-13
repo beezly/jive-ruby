@@ -1,5 +1,5 @@
 require 'rubygems'
-require './base'
+require 'jive_api'
 require 'mime/types'
 require 'tempfile'
 
