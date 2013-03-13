@@ -62,7 +62,13 @@ module Jive
   class Document < Content
     def initialize instance, data
       super instance, data
+      @content = data['content']['text']
+      @content_type = data['content']['type']
       @display_name = data["subject"]
+    end
+    
+    def get
+      @content
     end
   end
 
@@ -220,6 +226,13 @@ module Jive
     include HTTParty
 
     disable_rails_query_string_format
+
+    def inspect
+      # Don't show the attribute cache. It gets enormous. 
+      attributes_no_object_cache = self.instance_variables.reject { |var| var.to_s == '@object_cache' }
+      attributes_as_nice_string = attributes_no_object_cache.map { |attr| "#{attr}: #{self.instance_variable_get(attr).inspect}" }.join ", "
+      "#<#{self.class}:#{'%x' % (self.object_id << 1)} #{attributes_as_nice_string}>"
+    end
 
     class JSONResponseParser < HTTParty::Parser
       SupportFormats = { "application/json" => :json }
