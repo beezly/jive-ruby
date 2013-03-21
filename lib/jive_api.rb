@@ -6,6 +6,17 @@ require 'date'
 require 'hashery/lru_hash'
 
 module Jive
+  module GettableBinaryURL
+    def get
+      binary_uri = URI @binary_url
+      http = Net::HTTP.new(binary_uri.host, binary_uri.port)
+      req = Net::HTTP::Get.new binary_uri.request_uri
+      req.basic_auth @api_instance.auth[:username], @api_instance.auth[:password]
+      response = http.request req
+      response.body
+    end
+  end
+
   class Container
     attr_reader :name, :type, :id, :raw_data, :self_uri, :subject, :display_name
 
@@ -13,12 +24,12 @@ module Jive
       @raw_data = data
       @api_instance = instance
       @name = data["name"]
-      @type = data["type"]
-      @id = data["id"]
-      @display_name = data["displayName"]
-      @self_uri = data["resources"]["self"]["ref"]
-      @parent_uri = data["parent"]
-      @subject = data["subject"]
+      @type = data["type"] 
+      @id = data["id"] if data.has_key? 'id'
+      @display_name = data["displayName"] if data.has_key? 'displayName'
+      @self_uri = data["resources"]["self"]["ref"] if data.has_key? 'resources'
+      @parent_uri = data["parent"] if data.has_key? 'parent_uri'
+      @subject = data["subject"] if data.has_key? 'subject'
     end
 
     def display_path
@@ -35,6 +46,18 @@ module Jive
 
     def parent
       @api_instance.get_container_by_uri @parent_uri if @parent_uri
+    end
+  end
+
+  class Attachment < Container
+    include GettableBinaryURL
+    attr_reader :size, :mime_type
+    
+    def initialize instance, data
+      super instance, data
+      @mime_type = data['contentType']
+      @size = data['size']
+      @binary_url = data['url']
     end
   end
 
@@ -67,14 +90,25 @@ module Jive
   class Document < Content
     def initialize instance, data
       super instance, data
+      @attachments_count = data['attachments'].length
       @content = data['content']['text']
       @content_type = data['content']['type']
       @display_name = data["subject"]
+      @attachments_uri = data["resources"]["attachments"]["ref"] if data["resources"].has_key? "attachments"
     end
     
     def get
       @content
     end
+    
+    def attachments
+      @api_instance.get_container_by_uri @attachments_uri if @attachments_uri
+    end    
+    
+    def has_attachments?
+      @attachments_count > 0
+    end
+    
   end
 
   class Discussion < Content
@@ -90,6 +124,7 @@ module Jive
   end
 
   class File < Content
+    include GettableBinaryURL
     attr_reader :mime_type
     
     def initialize instance, data
@@ -98,14 +133,7 @@ module Jive
       @mime_type = data['contentType']
     end
     
-    def get
-      binary_uri = URI @binary_url
-      http = Net::HTTP.new(binary_uri.host, binary_uri.port)
-      req = Net::HTTP::Get.new binary_uri.request_uri
-      req.basic_auth @api_instance.auth[:username], @api_instance.auth[:password]
-      response = http.request req
-      response.body
-    end
+
   end
 
   class Poll < Content
