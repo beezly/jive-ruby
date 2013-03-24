@@ -1,0 +1,20 @@
+---
+rvm:
+  - 1.9.3
+env:
+  global:
+  - secure: ! 'TQjFpqLbP1GvJ102JZlCFYzaOAdupq3/lEKH3UOLWsD4FTa3/aF5k6ronBp9
+
+      AMi77EJfgSE+O4QJArvoMZY9DtkWKJfMysC7lVFE0T0IBRj/Y5qaqrsh/cYR
+
+      +2yG02TtFKYgcfHMeJ+jERKP/6I7LKX9qQDFyLt3enq7mDGH7dw='
+  - secure: ! 'LLydZgxrwZd5YSejTZkgkj/yg8WhIbg5koFmz5EYF4dUeNiNNP6PaSDy7/IO
+
+      PbIdZxrhsIaKwnEi1iD/fLQh54Mr3zty/BJvFS2TrF9G6e0AnGmMQ7S//D19
+
+      YvCAHixQ2jpgEyGJRaMxDCDaL5uqwwqIg4mn8nC/dNnJknmKww8='
+  - secure: ! 'ezAca5YSE10bVVuwoY//Bt/klTbKVaWwD9awrnZqx2krSBetvdo9I/T6E3jq
+
+      LuDOpDKz1IFx/za/rMSS1be5m/D1+k8E4zE6v0qJPLZwtuZLOmg3UA6pg5RG
+
+      f2YhhRX3xOmLklZHId7I04VAkFdUnm5BqGilRKKPrhiEyzelA/Q='
