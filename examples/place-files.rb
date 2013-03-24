@@ -28,12 +28,31 @@ def content_from_space space, sub_spaces = false, path = "."
           puts "Appending #{MIME::Types[content.mime_type].first.extensions[0]} to #{content.subject} based upon MIME Type: #{content.mime_type}"
         end
       end
-      puts "Creating #{File.join(space_path, tr_subject)}"   
-      File.open(File.join(space_path, tr_subject), "wb") { |file| file.write(file_content) }
+      file_path = File.join(space_path, "#{content.id}-#{tr_subject}")
+      puts "Creating #{file_path}"   
+      File.open(file_path, "wb") { |file| file.write(file_content) }
 
     when "document"
-      puts "Creating #{File.join(space_path, tr_subject)}.html"
-      File.open(File.join(space_path, "#{tr_subject}.html"), "wb") { |file| file.write(content.get) }
+      file_path = File.join(space_path, "#{content.id}-#{tr_subject}.html")
+      puts "Creating #{file_path}"
+      File.open(file_path, "wb") { |file| file.write(content.get) }
+      if content.has_attachments?
+        attachments_path = File.join(space_path, "#{content.id}-#{tr_subject}-attachments")
+        Dir::mkdir attachments_path
+        content.attachments.each do |attachment|
+          attachment_name = attachment.name 
+          unless attachment_name.match /\.[a-zA-Z0-9]{1,4}$/
+            puts "Server claims attachment is MIME Type: #{attachment.mime_type}"
+            if (MIME::Types[attachment.mime_type]) and (MIME::Types[attachment.mime_type].first.extensions)
+              attachment_name = "#{attachment_name}.#{MIME::Types[attachment.mime_type].first.extensions[0]}"
+              puts "Appending #{MIME::Types[attachment.mime_type].first.extensions[0]} to #{attachment.name} based upon MIME Type: #{attachment.mime_type}"
+            end
+          end
+          attachment_path = File.join(attachments_path, attachment_name)
+          puts "Creating #{attachment_path}"
+          File.open(attachment_path, "wb") { |file| file.write(attachment.get) }
+        end
+      end
 
     when "discussion"
       subject = content.subject
