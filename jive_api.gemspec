@@ -10,4 +10,5 @@ Gem::Specification.new do |s|
   s.homepage    = "http://github.com/beezly/jive-ruby"
   s.add_dependency 'httparty', '>= 0.10.0'
   s.add_dependency 'hashery', '>= 2.1.0'
+  s.add_development_dependency 'rake'
 end
