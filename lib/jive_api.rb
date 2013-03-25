@@ -225,8 +225,9 @@ module Jive
       end
     end
     
-    def places filter = []
-      @api_instance.paginated_get("#{uri}/places", :query => { :filter => filter }).map do |item|
+    def places(filter = [], options = {})
+      options.merge!({ :filter => filter })
+      @api_instance.paginated_get("#{uri}/places", :query => options).map do |item|
         object_class = Jive.const_get "#{item['type'].capitalize}"
         object_class.new @api_instance, item
       end
@@ -309,15 +310,13 @@ module Jive
       next_uri = path
 
       options.merge!({:basic_auth => @auth})
-
+      limit = 0
       # count doesn't work as expected in paginated requests, so we have a limit option
       if options.has_key? :limit
-        limit = options[:limit]
+        limit = options[:limit].to_i
         options.delete :limit
-      else
-        limit = nil
       end
-
+      
       results_so_far = 0
       begin
         response = self.class.get next_uri, options
@@ -333,7 +332,7 @@ module Jive
           end
         end
         results_so_far+=list.count 
-      end while next_uri and (limit.nil? or results_so_far < limit ) 
+      end while next_uri && ((limit == 0) || (results_so_far < limit))
       result
     end
 
@@ -396,20 +395,21 @@ module Jive
       end
     end
 
-    def places_by_filter filter
-      places ({ :query => { :filter => filter }}) 
+    def places_by_filter filter, options = {}
+      options.merge!({ :query => { :filter => filter }})
+      places options 
     end
 
-    def places_by_type object_type
-      places_by_filter "type(#{object_type})"
+    def places_by_type object_type, options = {}
+      places_by_filter "type(#{object_type})", options
     end
 
     def blogs 
       places_by_type "blog"
     end 
 
-    def spaces
-      places_by_type "space"
+    def spaces(options = {})
+      places_by_type "space", options
     end
 
     def group

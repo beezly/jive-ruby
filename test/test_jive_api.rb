@@ -17,7 +17,7 @@ class TestJiveAPI < Test::Unit::TestCase
     user = ENV['JIVE_USER']
     pass = ENV['JIVE_PASS']
     j = Jive::Api.new user, pass, url
-    s = j.spaces
-    assert_operator j.spaces.count, :>, 1
+    s = j.spaces :limit => 10
+    assert_operator s.count, :>, 1
   end
 end
