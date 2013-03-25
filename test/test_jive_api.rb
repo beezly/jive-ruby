@@ -19,15 +19,24 @@ class TestJiveAPI < Test::Unit::TestCase
   def test_spaces
     s = @api.spaces :limit => 10
     assert_operator s.count, :>, 1
+    assert( s[0].class == Jive::Space, "Returned class was not a Jive::Space" )
   end
   
   def test_groups
     g = @api.groups :limit => 10
     assert_operator g.count, :>, 1
+    assert( g[0].class == Jive::Group, "Returned class was not a Jive::Group" )
   end
   
   def test_people
     p = @api.people :limit => 10
     assert_operator p.count, :>, 1
+    assert( p[0].class == Jive::Person, "Returned class was not a Jive::Person" )
+  end
+  
+  def test_find_admin_user
+    admin_user = @api.person_by_username 'admin'
+    assert( admin_user.class == Jive::Person, "Returned class was not a Jive::Person" )
+    assert( admin_user.userid == 'admin' )
   end
 end
