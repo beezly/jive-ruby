@@ -20,4 +20,14 @@ class TestJiveAPI < Test::Unit::TestCase
     s = @api.spaces :limit => 10
     assert_operator s.count, :>, 1
   end
+  
+  def test_groups
+    g = @api.groups :limit => 10
+    assert_operator g.count, :>, 1
+  end
+  
+  def test_people
+    p = @api.people :limit => 10
+    assert_operator p.count, :>, 1
+  end
 end

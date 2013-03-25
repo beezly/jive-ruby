@@ -412,8 +412,8 @@ module Jive
       places_by_type "space", options
     end
 
-    def group
-      places_by_type "group"
+    def groups(options = {})
+      places_by_type "group", options
     end
 
     def contents_by_username username
