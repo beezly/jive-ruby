@@ -11,11 +11,11 @@ MIME::Types.add MIME::Type.from_array("application/vnd.openxmlformats-officedocu
 MIME::Types.add MIME::Type.from_array("application/vnd.ms-word", ['doc'])
 
 def content_from_space space, sub_spaces = false, path = "."
-  tr_display_name=space.display_name.tr '/\\', ''
+  tr_display_name=space.display_name.tr ':/\\?,.[]', ''
   space_path = File.join path, tr_display_name
   Dir::mkdir space_path
   space.content.each do |content|
-    tr_subject = content.subject.tr '/\\', ''
+    tr_subject = content.subject.tr ':/\\?,.[]', ''
     case content.type
       
     when "file"
@@ -61,7 +61,7 @@ def content_from_space space, sub_spaces = false, path = "."
       messages = content.messages
       messages_html = messages.map { |message| "<div class='message-author'>#{message.author.display_name}</div><div class='message-content'>#{message.get}</div>" }.join
       body_html = "<h1>#{subject}</h1><h2>#{author}</h2><div class='message-body'>#{body}</div><div class='messages'>#{messages_html}</div>"
-      filename = "discussion:#{subject.tr('/\\?,.[]', '').tr(' ','_')}.html"
+      filename = "discussion:#{subject.tr(':/\\?,.[]', '').tr(' ','_')}.html"
       puts "Creating Discussion for #{subject} in #{filename}"
       File.open(File.join(space_path, filename), "wb") { |file| file.write(body_html) }
       
