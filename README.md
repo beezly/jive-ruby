@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/beezly/jive-ruby.png?branch=master)](https://travis-ci.org/beezly/jive-ruby)
+
 jive-ruby
 =========
 
