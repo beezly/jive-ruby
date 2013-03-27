@@ -404,8 +404,8 @@ module Jive
       places_by_filter "type(#{object_type})", options
     end
 
-    def blogs 
-      places_by_type "blog"
+    def blogs(options = {}) 
+      places_by_type "blog", options
     end 
 
     def spaces(options = {})
@@ -430,7 +430,7 @@ module Jive
     end
 
     def main_space
-      spaces.select { |space| space.raw_data[]}
+      places_by_filter("entityDescriptor(14,1)")[0]
     end
 
     headers 'Accept' => 'application/json'

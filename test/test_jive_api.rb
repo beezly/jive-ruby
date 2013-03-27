@@ -39,4 +39,10 @@ class TestJiveAPI < Test::Unit::TestCase
     assert( admin_user.class == Jive::Person, "Returned class was not a Jive::Person" )
     assert( admin_user.userid == 'admin' )
   end
+
+  def test_main_space
+    main_space = @api.main_space
+    assert( main_space.class == Jive::Space, "Main Space was not a Jive::Space")
+    assert( main_space.parent.nil?, "Main Space's parent was not nil")
+  end
 end
