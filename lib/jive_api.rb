@@ -18,7 +18,7 @@ module Jive
   end
 
   class Container
-    attr_reader :name, :type, :id, :raw_data, :self_uri, :subject, :display_name
+    attr_reader :name, :type, :id, :raw_data, :self_uri, :subject, :display_name, :html_uri
 
     def initialize instance, data
       @raw_data = data
@@ -30,6 +30,7 @@ module Jive
       @self_uri = data["resources"]["self"]["ref"] if data.has_key? 'resources'
       @parent_uri = data["parent"] if data.has_key? 'parent_uri'
       @subject = data["subject"] if data.has_key? 'subject'
+      @html_uri = data["resources"]["html"]["ref"] if (data.has_key?('resources') && data["resources"].has_key?('html'))
     end
 
     def display_path
@@ -207,14 +208,14 @@ module Jive
   end
 
   class Place < Container
-    attr_reader :description, :status, :ref, :html_uri
+    attr_reader :description, :status, :ref, :place_id
 
     def initialize instance, data
       super instance, data 
       @description = data["description"]
       @status = data["status"]
       @ref = data["resources"]["self"]["ref"]
-      @html_uri = data["resources"]["html"]["ref"]
+      @place_id = @ref.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[0]
     end
 
     def content
