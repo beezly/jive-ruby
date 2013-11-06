@@ -63,7 +63,7 @@ module Jive
   end
 
   class Content < Container
-    attr_reader :updated_at, :visibility 
+    attr_reader :updated_at, :visibility, :content_id
 
     def initialize instance, data
       super instance, data
@@ -71,6 +71,7 @@ module Jive
       @updated_at = DateTime.iso8601 data["updated"]
       @visibility = data['visibility']
       @content = data['content']['text']
+      @content_id = @ref.match(/\/api\/core\/v3\/contents\/([0-9]+)$/)[1]
     end
 
     def author
@@ -215,7 +216,7 @@ module Jive
       @description = data["description"]
       @status = data["status"]
       @ref = data["resources"]["self"]["ref"]
-      @place_id = @ref.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[0]
+      @place_id = @ref.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[1]
     end
 
     def content
