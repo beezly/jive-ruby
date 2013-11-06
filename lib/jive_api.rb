@@ -350,6 +350,10 @@ module Jive
       get_container_by_uri "/api/core/v3/places/#{place_id}"
     end
 
+    def content_by_id content_id
+      get_container_by_uri "/api/core/v3/contents/#{content_id}"
+    end
+
     def places options = {}, &block
       get_containers_by_type 'places', options, &block
     end
