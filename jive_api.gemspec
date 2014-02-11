@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'jive_api'
-  s.version     = '0.0.1.pre'
-  s.date        = '2013-03-13'
+  s.version     = '0.0.2.pre'
+  s.date        = '2014-02-11'
   s.summary     = "Jive API"
   s.description = "Jive API Connector for Ruby"
   s.authors     = ["Andrew Beresford"]

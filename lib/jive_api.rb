@@ -7,7 +7,7 @@ require 'hashery/lru_hash'
 
 module Jive
   module GettableBinaryURL
-    def get
+    def get_binary
       binary_uri = URI @binary_url
       http = Net::HTTP.new(binary_uri.host, binary_uri.port)
       req = Net::HTTP::Get.new binary_uri.request_uri

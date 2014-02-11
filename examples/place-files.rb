@@ -11,11 +11,11 @@ MIME::Types.add MIME::Type.from_array("application/vnd.openxmlformats-officedocu
 MIME::Types.add MIME::Type.from_array("application/vnd.ms-word", ['doc'])
 
 def content_from_space space, sub_spaces = false, path = "."
-  tr_display_name=space.display_name.tr ':/\\?,.[]', ''
+  tr_display_name=space.display_name.tr '":/\\?,.[]', ''
   space_path = File.join path, tr_display_name
   Dir::mkdir space_path
   space.content.each do |content|
-    tr_subject = content.subject.tr ':/\\?,.[]', ''
+    tr_subject = content.subject.tr '":/\\?,.[]', ''
     case content.type
       
     when "file"
