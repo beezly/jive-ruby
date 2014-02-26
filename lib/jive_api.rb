@@ -72,7 +72,8 @@ module Jive
       @visibility = data['visibility']
       @content = data['content']['text']
       @ref = data["resources"]["self"]["ref"]
-      @content_id = @ref.match(/\/api\/core\/v3\/contents\/([0-9]+)$/)[1]
+      res=@ref.match(/\/api\/core\/v3\/contents\/([0-9]+)$/)
+      @content_id = res[1] if res
     end
 
     def author
