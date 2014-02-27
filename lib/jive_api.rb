@@ -4,6 +4,8 @@ require 'net/http'
 require 'uri'
 require 'date'
 require 'hashery/lru_hash'
+require 'dalli'
+require 'pp'
 
 module Jive
   module GettableBinaryURL
@@ -222,12 +224,23 @@ module Jive
     end
 
     def content
-      filter  = "place(#{@self_uri})"
-      @api_instance.paginated_get('/api/core/v3/contents', :query => { :filter => "#{filter}" }).map do |item|
-        object_class = Jive.const_get "#{item['type'].capitalize}"
-        object_class.new @api_instance, item
+      if cache_result=@api_instance.contentlist_cache.get(@self_uri)
+        cache_result.map {|x| @api_instance.get_container_by_uri x}
+      else
+        filter  = "place(#{@self_uri})"
+        content_uri_list = []
+        ret=@api_instance.paginated_get('/api/core/v3/contents', :query => { :filter => "#{filter}" }).map do |item|
+          object_class = Jive.const_get "#{item['type'].capitalize}"
+          obj = object_class.new @api_instance, item
+          content_uri_list.push obj.self_uri
+          obj
+        end
+        @api_instance.contentlist_cache.set(@self_uri,content_uri_list)
+        puts "wrote #{content_uri_list} to contentlist cache"
+        ret
       end
     end
+
     
     def places(filter = [], options = {})
       options.merge!({ :filter => filter })
@@ -280,6 +293,7 @@ module Jive
 
   class Api
     attr_reader :object_cache, :auth
+    attr_accessor :contentlist_cache
     include HTTParty
 
     disable_rails_query_string_format
@@ -300,7 +314,10 @@ module Jive
     end
 
     def initialize username, password, uri
-      @object_cache = Hashery::LRUHash.new 1000000
+      @urllist_cache = Dalli::Client.new('localhost:11211', :namespace => "urllist_cache", :compress => true)
+      @objectdata_cache = Dalli::Client.new('localhost:11211', :namespace => "objectdata_cache", :compress => true)
+      @contentlist_cache = Dalli::Client.new('localhost:11211', :namespace => "contentlist_cache", :compress => true)
+      #@object_cache = Hashery::LRUHash.new 1000000
       @uri_cache = Hashery::LRUHash.new 1000000
       @auth = { :username => username, :password => password }
       self.class.base_uri uri
@@ -359,7 +376,7 @@ module Jive
       get_container_by_uri "/api/core/v3/places/#{place_id}"
     end
 
-    def content_by_id content_id
+    def content_by_id conrtent_id
       get_container_by_uri "/api/core/v3/contents/#{content_id}"
     end
 
@@ -390,23 +407,27 @@ module Jive
 
     def get_container_by_uri uri
       # Deliver from the object cache if we have it
-      return @object_cache[uri] if @object_cache.has_key? uri
-      data = self.class.get uri, { :basic_auth => @auth }
-      # raise Error if data.parsed_response.has_key? 'error'
-      return nil if data.parsed_response.has_key? 'error'
+      #return @object_cache[uri] if @object_cache.has_key? uri
+      if parsed_response=@objectdata_cache.get(uri)
+        puts "Container returned from cache: #{uri}"
+      else
+        puts "Container returned from server: #{uri}"
+        res = self.class.get uri, { :basic_auth => @auth }
+        parsed_response=res.parsed_response
+        return nil if parsed_response.has_key? 'error'
+        @objectdata_cache.set(uri,parsed_response)
+      end
       # We handle both lists and single items with this
-      if data.parsed_response.has_key? "list"
-        data.parsed_response['list'].map do |item|
+      if parsed_response.has_key? "list"
+        all=parsed_response['list'].map do |item|
           object_class = Jive.const_get "#{item['type'].capitalize}"
           o = object_class.new self, item
-          @object_cache[o.uri] = o
-          o
         end
+        #@object_cache[uri] = all
       else
-        object_class = Jive.const_get "#{data.parsed_response['type'].capitalize}"
-        o = object_class.new self, data
-        @object_cache[o.uri] = o
-        o
+        object_class = Jive.const_get "#{parsed_response['type'].capitalize}"
+        o = object_class.new self, parsed_response
+        #@object_cache[uri] = o
       end
     end
 
