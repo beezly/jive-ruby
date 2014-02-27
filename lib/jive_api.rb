@@ -400,7 +400,6 @@ module Jive
         paginated_get(next_uri, options).map do |data|
           object_class = Jive.const_get "#{data['type'].capitalize}"
           o = object_class.new self, data
-          @object_cache[o.uri] = o
         end
       end
     end
