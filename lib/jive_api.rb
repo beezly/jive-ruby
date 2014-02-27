@@ -324,13 +324,13 @@ module Jive
       
       results_so_far = 0
       begin
-        if @uri_cache.has_key? next_uri
-          parsed_response=@uri_cache[next_uri]
+        if @uri_cache.has_key? next_uri+options.to_s
+          parsed_response=@uri_cache[next_uri+options.to_s]
         else 
           response=self.class.get(next_uri, options)
           raise Error if response.parsed_response.has_key? 'error'
           parsed_response=response.parsed_response
-          @uri_cache[next_uri]=parsed_response
+          @uri_cache[next_uri+options.to_s]=parsed_response
         end
         options.delete :query
         next_uri = (parsed_response["links"] and parsed_response["links"]["next"] ) ? parsed_response["links"]["next"] : nil
