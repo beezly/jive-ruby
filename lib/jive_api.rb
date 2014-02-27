@@ -408,6 +408,7 @@ module Jive
     def get_container_by_uri uri
       # Deliver from the object cache if we have it
       #return @object_cache[uri] if @object_cache.has_key? uri
+      uri=last_part[0] if last_part=uri.match(/https?:\/\/[^\/]*(\/.*)/)
       if parsed_response=@objectdata_cache.get(uri)
         puts "Container returned from cache: #{uri}"
       else
