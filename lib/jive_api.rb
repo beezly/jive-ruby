@@ -240,7 +240,6 @@ module Jive
         ret
       end
     end
-
     
     def places(filter = [], options = {})
       options.merge!({ :filter => filter })
@@ -317,6 +316,7 @@ module Jive
       @urllist_cache = Dalli::Client.new('localhost:11211', :namespace => "urllist_cache", :compress => true)
       @objectdata_cache = Dalli::Client.new('localhost:11211', :namespace => "objectdata_cache", :compress => true)
       @contentlist_cache = Dalli::Client.new('localhost:11211', :namespace => "contentlist_cache", :compress => true)
+      @container_cache = Dalli::Client.new('localhost:11211', :namespace => "container_cache", :compress => true)
       #@object_cache = Hashery::LRUHash.new 1000000
       @uri_cache = Hashery::LRUHash.new 1000000
       @auth = { :username => username, :password => password }
@@ -397,7 +397,8 @@ module Jive
       if block_given?
         paginated_get(next_uri,options, &block)
       else
-        paginated_get(next_uri, options).map do |data|
+        data_arr=paginated_get(next_uri, options) unless data_arr=@container_cache.get(next_uri+options.to_s)
+        data_arr.map do |data|
           object_class = Jive.const_get "#{data['type'].capitalize}"
           o = object_class.new self, data
         end
