@@ -300,7 +300,8 @@ module Jive
     end
 
     def initialize username, password, uri
-      @object_cache = Hashery::LRUHash.new 10000
+      @object_cache = Hashery::LRUHash.new 1000000
+      @uri_cache = Hashery::LRUHash.new 1000000
       @auth = { :username => username, :password => password }
       self.class.base_uri uri
     end
@@ -323,11 +324,17 @@ module Jive
       
       results_so_far = 0
       begin
-        response = self.class.get next_uri, options
-        raise Error if response.parsed_response.has_key? 'error'
+        if @uri_cache.has_key[:next_uri]
+          parsed_response=@uri_cache.has_key[:next_uri]
+        else 
+          response=self.class.get(next_uri, options)
+          raise Error if response.parsed_response.has_key? 'error'
+          parsed_response=response.parsed_response
+          @uri_cache[:next_uri]=parsed_response
+        end
         options.delete :query
-        next_uri = (response.parsed_response["links"] and response.parsed_response["links"]["next"] ) ? response.parsed_response["links"]["next"] : nil
-        list = response.parsed_response["list"]
+        next_uri = (parsed_response["links"] and parsed_response["links"]["next"] ) ? parsed_response["links"]["next"] : nil
+        list = parsed_response["list"]
         list = list ? list : []
         result.concat list
         if block_given?
