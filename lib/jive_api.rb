@@ -408,9 +408,9 @@ module Jive
       #return @object_cache[uri] if @object_cache.has_key? uri
       uri=last_part[0] if last_part=uri.match(/https?:\/\/[^\/]*(\/.*)/)
       if parsed_response=@objectdata_cache.get(uri)
-        puts "Container returned from cache: #{uri}"
+        # puts "Container returned from cache: #{uri}"
       else
-        puts "Container returned from server: #{uri}"
+        # puts "Container returned from server: #{uri}"
         res = self.class.get uri, { :basic_auth => @auth }
         parsed_response=res.parsed_response
         return nil if parsed_response.has_key? 'error'
