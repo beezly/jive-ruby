@@ -314,7 +314,7 @@ module Jive
       @urllist_cache = Dalli::Client.new('localhost:11211', :namespace => "urllist_cache", :compress => true)
       @objectdata_cache = Dalli::Client.new('localhost:11211', :namespace => "objectdata_cache", :compress => true)
       @contentlist_cache = Dalli::Client.new('localhost:11211', :namespace => "contentlist_cache", :compress => true)
-      @container_cache = Dalli::Client.new('localhost:11211', :namespace => "container_cache", :compress => true)
+      @container_cache = Dalli::Client.new('localhost:11211', :namespace => "container_cache", :compress => true, :value_max_bytes => 1024*1024*16)
       #@object_cache = Hashery::LRUHash.new 1000000
       @uri_cache = Hashery::LRUHash.new 1000000
       @auth = { :username => username, :password => password }
