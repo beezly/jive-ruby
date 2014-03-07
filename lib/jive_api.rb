@@ -397,7 +397,7 @@ module Jive
       else
         unless data_arr=@container_cache.get(next_uri+options.to_s) 
           data_arr=paginated_get(next_uri, options)
-          @container_cache.put(next_uri+options.to_s)
+          @container_cache.set(next_uri+options.to_s,data_arr)
         end
         data_arr.map do |data|
           object_class = Jive.const_get "#{data['type'].capitalize}"
