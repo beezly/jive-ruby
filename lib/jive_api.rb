@@ -221,7 +221,7 @@ module Jive
       super instance, data 
       @description = data["description"]
       @status = data["status"]
-      @place_id = @ref.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[1] if @ref
+      @place_id = @self_uri.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[1] 
     end
 
     def content
