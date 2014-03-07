@@ -29,7 +29,7 @@ module Jive
       @type = data["type"] 
       @id = data["id"] if data.has_key? 'id'
       @display_name = data["displayName"] if data.has_key? 'displayName'
-      @self_uri = data["resources"]["self"]["ref"] if data.has_key? 'resources'
+      @self_uri = data["resources"]["self"]["ref"] if data.has_key? 'resources' and data['resources'].has_key? 'self' and data['resources']['self'].has_key? 'ref'
       @parent_uri = data["parent"] if data.has_key? 'parent_uri'
       @subject = data["subject"] if data.has_key? 'subject'
       @html_uri = data["resources"]["html"]["ref"] if (data.has_key?('resources') && data["resources"].has_key?('html'))
@@ -219,8 +219,7 @@ module Jive
       super instance, data 
       @description = data["description"]
       @status = data["status"]
-      @ref = data["resources"]["self"]["ref"]
-      @place_id = @ref.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[1]
+      @place_id = @ref.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[1] if @ref
     end
 
     def content
@@ -399,6 +398,7 @@ module Jive
       else
         data_arr=paginated_get(next_uri, options) unless data_arr=@container_cache.get(next_uri+options.to_s)
         data_arr.map do |data|
+          pp data
           object_class = Jive.const_get "#{data['type'].capitalize}"
           o = object_class.new self, data
         end
@@ -467,7 +467,7 @@ module Jive
     end
 
     def main_space
-      places_by_filter("entityDescriptor(14,1)")[0]
+      get_container_by_uri "/api/core/v3/places/root"
     end
 
     headers 'Accept' => 'application/json'
