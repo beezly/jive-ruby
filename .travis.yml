@@ -7,3 +7,5 @@ env:
     - secure: "IbNp58Ne3ekUo8LV0olkT8fmcGnhVdjtTidw/UOs1aUIhv49CJWj4Y82bwXdK32WzAL1EAVh/HX93PzRTMvI5l0taNDzCvQv9Qfwc+B0duq5kmM0kp5g2TJOyIWut9OJ0RSrCM4tq5vQLdQ+LEurCMLVDG+/uDaYP8h1sdf59Sc="
     - secure: "FvQ/kSubKD957qCMCRhOY8ouEt75CIPSoJ3pkYwH68y4zEl+HUrrZ+IFh1jSZ57MUV6G4neA5jwvvVcKxAL3gX9kEmsXorp7RHLJYbibxKGvMl6hKSlxbq9KDd9/88EBFMko8Abg7B1Lz4too3uXuiiZhPJzeLZnlMtwiopBoWg="
     - secure: "hHnj5bNXcOqasdXpxAhwCBiVtUOhrvElkn/qYhX6oCWdykOVfpVjrMz49I2iZcbbkB0SDgYqCpUFgnQFW+byFrMaT3i4W8jYFHHT1jKp2xWDHPDZAKumD9gBgyp3XIP4LolNQ4rZIW4IkR4hbM6kFIIhSKkEmMjHmI+r8lZKJZM=" 
+services:
+  - memcached
