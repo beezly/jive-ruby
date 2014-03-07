@@ -210,6 +210,9 @@ module Jive
       @api_instance.contents :query => { :filter => filters }
     end
   end
+  
+  class User < Person
+  end
 
   class Place < Container
     attr_reader :description, :status, :ref, :place_id
