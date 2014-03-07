@@ -329,7 +329,6 @@ module Jive
       result = []
       next_uri = path
 
-      options.merge!({:basic_auth => @auth})
       limit = 0
       # count doesn't work as expected in paginated requests, so we have a limit option
       if options.has_key? :limit
@@ -342,7 +341,7 @@ module Jive
         if @uri_cache.has_key? next_uri+options.to_s
           parsed_response=@uri_cache[next_uri+options.to_s]
         else 
-          response=self.class.get(next_uri, options)
+          response=self.class.get(next_uri, options.merge({:basic_auth => @auth}))
           raise Error if response.parsed_response.has_key? 'error'
           parsed_response=response.parsed_response
           @uri_cache[next_uri+options.to_s]=parsed_response
@@ -392,13 +391,12 @@ module Jive
 
     def get_containers_by_type type, options, &block
       next_uri = "/api/core/v3/#{type}"
-      orig_options = options
       if block_given?
         paginated_get(next_uri,options, &block)
       else
         unless data_arr=@container_cache.get(next_uri+options.to_s) 
           data_arr=paginated_get(next_uri, options)
-          @container_cache.set(next_uri+orig_options.to_s,data_arr)
+          @container_cache.set(next_uri+options.to_s,data_arr)
         end
         data_arr.map do |data|
           object_class = Jive.const_get "#{data['type'].capitalize}"
