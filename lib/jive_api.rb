@@ -395,7 +395,7 @@ module Jive
       if block_given?
         paginated_get(next_uri,options, &block)
       else
-        unless data_arr=@container_cache.get(next_uri+options.to_s) do
+        unless data_arr=@container_cache.get(next_uri+options.to_s) 
           data_arr=paginated_get(next_uri, options)
           @container_cache.put(next_uri+options.to_s)
         end
