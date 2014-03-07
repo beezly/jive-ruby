@@ -392,12 +392,13 @@ module Jive
 
     def get_containers_by_type type, options, &block
       next_uri = "/api/core/v3/#{type}"
+      orig_options = options
       if block_given?
         paginated_get(next_uri,options, &block)
       else
         unless data_arr=@container_cache.get(next_uri+options.to_s) 
           data_arr=paginated_get(next_uri, options)
-          @container_cache.set(next_uri+options.to_s,data_arr)
+          @container_cache.set(next_uri+orig_options.to_s,data_arr)
         end
         data_arr.map do |data|
           object_class = Jive.const_get "#{data['type'].capitalize}"
