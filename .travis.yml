@@ -4,18 +4,6 @@ rvm:
 - 2.0.0
 env:
   global:
-  - secure: ! 'F50F0yG0dyPTHY9V1hMt1TfjUrNFJMurX0uUPobZhCd/kTHGaLo0O2sDE7oK
-
-      MIQ62nggQ0Z3jbrJYm3uQFQK+YM8eIpM8St3ebetSCfJg3oA36+xobPO/H5n
-
-      WxLpoIp0i4Pf0d3cL3L2YD5kfaDmHlc1TusmUZRMCFnWPC6cuR0='
-  - secure: ! 'cLzokgNK6ktWIGSR1y4Yj9YwJMQnJiiAH2g2NHNkJj6tEy7PY/3CSHs7xorf
-
-      jdl2Emhw+v1xYuwe1M6pIvjKTUN75jooz0196XVJ6G8x6MUwsBNkO0Y3pCql
-
-      9gWnCIxo2uA2hLFYkg3UJhANcvcH6ApiQvQ35O+0vsKAsCD6YU0='
-  - secure: ! 'dZ3xvzXFQU5TIEvHtzfSZ/D1mL3CfcgWCBMOCMPg3vvHxtb9Ws7pmyb8riKu
-
-      aGPHYl9C71ntJc1mOCWFbCfm9TyTVSPNz0KO2TxQv53oTzoNWx60g2Xr/WbQ
-
-      wlxYMZBUARERQn3Lfm1hSM7qlrjBOsKwXlwvsWm08zyJ0PCFXcQ='
+    - secure: "IbNp58Ne3ekUo8LV0olkT8fmcGnhVdjtTidw/UOs1aUIhv49CJWj4Y82bwXdK32WzAL1EAVh/HX93PzRTMvI5l0taNDzCvQv9Qfwc+B0duq5kmM0kp5g2TJOyIWut9OJ0RSrCM4tq5vQLdQ+LEurCMLVDG+/uDaYP8h1sdf59Sc="
+    - secure: "FvQ/kSubKD957qCMCRhOY8ouEt75CIPSoJ3pkYwH68y4zEl+HUrrZ+IFh1jSZ57MUV6G4neA5jwvvVcKxAL3gX9kEmsXorp7RHLJYbibxKGvMl6hKSlxbq9KDd9/88EBFMko8Abg7B1Lz4too3uXuiiZhPJzeLZnlMtwiopBoWg="
+    - secure: "hHnj5bNXcOqasdXpxAhwCBiVtUOhrvElkn/qYhX6oCWdykOVfpVjrMz49I2iZcbbkB0SDgYqCpUFgnQFW+byFrMaT3i4W8jYFHHT1jKp2xWDHPDZAKumD9gBgyp3XIP4LolNQ4rZIW4IkR4hbM6kFIIhSKkEmMjHmI+r8lZKJZM=" 
