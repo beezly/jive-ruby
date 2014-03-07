@@ -5,7 +5,6 @@ require 'uri'
 require 'date'
 require 'hashery/lru_hash'
 require 'dalli'
-require 'pp'
 
 module Jive
   module GettableBinaryURL
@@ -398,7 +397,6 @@ module Jive
       else
         data_arr=paginated_get(next_uri, options) unless data_arr=@container_cache.get(next_uri+options.to_s)
         data_arr.map do |data|
-          pp data
           object_class = Jive.const_get "#{data['type'].capitalize}"
           o = object_class.new self, data
         end
