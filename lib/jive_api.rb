@@ -151,8 +151,6 @@ module Jive
     end
   end
 
-  class Comment < Content
-  end
 
   class Post < Content
     def initialize instance, data
@@ -183,21 +181,6 @@ module Jive
       super instance, data
       @display_name = data['subject']
     end
-  end
-
-  class Favorite < Content
-  end
-
-  class Task < Content
-  end
-
-  class Idea < Content
-  end
-
-  class Video < Content
-  end
-
-  class Photo < Content
   end
 
   class Person < Container
@@ -233,6 +216,15 @@ module Jive
       @place_id = @self_uri.match(/\/api\/core\/v3\/places\/([0-9]+)$/)[1] 
     end
 
+    def resolve_content_class(type)
+      class_name   = type.capitalize
+      begin
+        object_class = Jive.const_get class_name
+      rescue NameError
+        object_class = Object.const_set(class_name, Class.new(Content))
+      end
+    end
+
     def content
       if cache_result=@api_instance.contentlist_cache.get(@self_uri)
         cache_result.map {|x| @api_instance.get_container_by_uri x}
@@ -240,7 +232,7 @@ module Jive
         filter  = "place(#{@self_uri})"
         content_uri_list = []
         ret=@api_instance.paginated_get('/api/core/v3/contents', :query => { :filter => "#{filter}" }).map do |item|
-          object_class = Jive.const_get "#{item['type'].capitalize}"
+          object_class = resolve_content_class item['type']
           obj = object_class.new @api_instance, item
           content_uri_list.push obj.self_uri
           obj
@@ -250,7 +242,7 @@ module Jive
         ret
       end
     end
-    
+
     def places(filter = [], options = {})
       options.merge!({ :filter => filter })
       @api_instance.paginated_get("#{uri}/places", :query => options).map do |item|
