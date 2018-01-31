@@ -197,6 +197,8 @@ module Jive
   class Video < Content
   end
 
+  class Photo < Content
+  end
 
   class Person < Container
     attr_reader :display_name, :userid, :status
