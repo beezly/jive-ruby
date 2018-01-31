@@ -89,6 +89,10 @@ module Jive
       @content
     end
 
+    def content_methods
+      self.methods - Object.methods
+    end
+
   end
 
   class Document < Content
@@ -189,6 +193,10 @@ module Jive
 
   class Idea < Content
   end
+
+  class Video < Content
+  end
+
 
   class Person < Container
     attr_reader :display_name, :userid, :status
