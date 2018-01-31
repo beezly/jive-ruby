@@ -4,8 +4,7 @@ require 'net/http'
 require 'uri'
 require 'date'
 require 'hashery/lru_hash'
-require 'dalli'
-
+require 'cache'
 module Jive
   module GettableBinaryURL
     def get_binary
@@ -88,6 +87,10 @@ module Jive
     
     def get
       @content
+    end
+
+    def content_methods
+      self.methods - Object.methods
     end
 
   end
@@ -190,6 +193,10 @@ module Jive
 
   class Idea < Content
   end
+
+  class Video < Content
+  end
+
 
   class Person < Container
     attr_reader :display_name, :userid, :status
@@ -313,12 +320,11 @@ module Jive
       end
     end
 
-    def initialize username, password, uri
-      @urllist_cache = Dalli::Client.new('localhost:11211', :namespace => "urllist_cache", :compress => true)
-      @objectdata_cache = Dalli::Client.new('localhost:11211', :namespace => "objectdata_cache", :compress => true)
-      @contentlist_cache = Dalli::Client.new('localhost:11211', :namespace => "contentlist_cache", :compress => true)
-      @container_cache = Dalli::Client.new('localhost:11211', :namespace => "container_cache", :compress => true, :value_max_bytes => 1024*1024*16)
-      #@object_cache = Hashery::LRUHash.new 1000000
+    def initialize username, password, uri, cache_type=Cache::Memcache
+      @urllist_cache     = cache_type.new('localhost:11211', :namespace => "urllist_cache", :compress => true)
+      @objectdata_cache  = cache_type.new('localhost:11211', :namespace => "objectdata_cache", :compress => true)
+      @contentlist_cache = cache_type.new('localhost:11211', :namespace => "contentlist_cache", :compress => true)
+      @container_cache   = cache_type.new('localhost:11211', :namespace => "container_cache", :compress => true, :value_max_bytes => 1024*1024*16)
       @uri_cache = Hashery::LRUHash.new 1000000
       @auth = { :username => username, :password => password }
       self.class.base_uri uri
@@ -345,7 +351,7 @@ module Jive
           parsed_response=@uri_cache[next_uri+options.to_s]
         else 
           response=self.class.get(next_uri, options.merge({:basic_auth => @auth}))
-          raise Error if response.parsed_response.has_key? 'error'
+          raise Error unless response.response.code == "200"
           parsed_response=response.parsed_response
           @uri_cache[next_uri+options.to_s]=parsed_response
         end
