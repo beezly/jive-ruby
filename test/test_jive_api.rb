@@ -7,7 +7,7 @@ class TestJiveAPI < Test::Unit::TestCase
     @url = ENV['JIVE_URL']
     @user = ENV['JIVE_USER']
     @pass = ENV['JIVE_PASS']
-    @api = Jive::Api.new @user, @pass, @url
+    @api = Jive::Api.new @user, @pass, @url, Jive::Cache::Hashcache
   end
 
   def test_version
