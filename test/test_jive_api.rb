@@ -1,36 +1,36 @@
-require 'test/unit'
-require 'jive_api'
+require 'bundler/setup'
+require 'minitest/autorun'
 
+require_relative '../lib/jive/api'
 
-class TestJiveAPI < Test::Unit::TestCase
+class TestJiveAPI < Minitest::Test
   def setup
     @url = ENV['JIVE_URL']
     @user = ENV['JIVE_USER']
     @pass = ENV['JIVE_PASS']
+    fail "Set JIVE_URL, JIVE_USER and JIVE_PASS before running tests" unless @url && @user && @pass
     @api = Jive::Api.new @user, @pass, @url, Jive::Cache::Hashcache
   end
 
   def test_version
-    assert_nothing_raised do
-      @api.api_version
-    end
+    assert_match(/\d{4}\.\d\.\d/, @api.api_version['jiveVersion'])
   end
 
   def test_spaces
     s = @api.spaces :limit => 10
-    assert_operator s.count, :>, 1
+    assert_operator s.count, :>, 0
     assert( s[0].class == Jive::Space, "Returned class was not a Jive::Space" )
   end
   
   def test_groups
     g = @api.groups :limit => 10
-    assert_operator g.count, :>, 1
+    assert_operator g.count, :>, 0
     assert( g[0].class == Jive::Group, "Returned class was not a Jive::Group" )
   end
   
   def test_people
     p = @api.people :limit => 10
-    assert_operator p.count, :>, 1
+    assert_operator p.count, :>, 0
     assert( p[0].class == Jive::Person, "Returned class was not a Jive::Person" )
   end
   
