@@ -71,7 +71,7 @@ module Jive
 
   class File < Content
     include GettableBinaryURL
-    attr_reader :mime_type
+    attr_reader :mime_type, :binary_url
     
     def initialize instance, data
       super instance, data
