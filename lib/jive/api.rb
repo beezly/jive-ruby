@@ -47,28 +47,35 @@ module Jive
       self.class.get '/api/version', {:basic_auth => @auth}
     end
 
-    def paginated_get path, options = {}, &block
+    def request_with_cache(next_uri, options)
+      key = uri_to_cache_key(next_uri, options)
+      if @uri_cache.has_key? key
+        @uri_cache[key]
+      else
+        response = self.class.get(next_uri, options.merge({:basic_auth => @auth}))
+        raise Error unless response.response.code == "200"
+        @uri_cache[key] = response.parsed_response
+      end
+    end
+
+    def uri_to_cache_key(uri, options)
+      [uri, options.to_a].join(':')
+    end
+
+    def paginated_get(path, options = {}, &block)
       result = []
       next_uri = path
-
       limit = 0
+      results_so_far = 0
+
       # count doesn't work as expected in paginated requests, so we have a limit option
       if options.has_key? :limit
         limit = options[:limit].to_i
         options.delete :limit
       end
       
-      results_so_far = 0
-      begin
-        key = next_uri + options.to_s
-        if @uri_cache.has_key? key
-          parsed_response=@uri_cache[key]
-        else 
-          response=self.class.get(next_uri, options.merge({:basic_auth => @auth}))
-          raise Error unless response.response.code == "200"
-          parsed_response=response.parsed_response
-          @uri_cache[key]=parsed_response
-        end
+      while next_uri && ((limit == 0) || (results_so_far < limit)) do
+        parsed_response = request_with_cache(next_uri, options)
         options.delete :query
         next_uri = (parsed_response["links"] and parsed_response["links"]["next"] ) ? parsed_response["links"]["next"] : nil
         list = parsed_response["list"]
@@ -84,7 +91,7 @@ module Jive
           end.compact
         end
         results_so_far += list.count 
-      end while next_uri && ((limit == 0) || (results_so_far < limit))
+      end
       result
     end
 
@@ -101,42 +108,42 @@ module Jive
       resolve_content_class(item['type']).new(self, item)
     end
 
-    def people options = {}, &block
+    def people(options = {}, &block)
       get_containers_by_type 'people', options, &block
     end
 
-    def person_by_username username
+    def person_by_username(username)
       get_container_by_uri "/api/core/v3/people/username/#{username}"
     end
 
-    def place_by_id place_id
+    def place_by_id(place_id)
       get_container_by_uri "/api/core/v3/places/#{place_id}"
     end
 
-    def content_by_id conrtent_id
+    def content_by_id(content_id)
       get_container_by_uri "/api/core/v3/contents/#{content_id}"
     end
 
-    def places options = {}, &block
+    def places(options = {}, &block)
       get_containers_by_type 'places', options, &block
     end
 
-    def contents options = {}, &block
+    def contents(options = {}, &block)
       get_containers_by_type 'contents', options, &block
     end
 
-    def activities options = {}, &block
+    def activities(options = {}, &block)
       get_containers_by_type 'activity', options, &block
     end
 
-    def get_containers_by_type type, options, &block
+    def get_containers_by_type(type, options, &block)
       next_uri = "/api/core/v3/#{type}"
       if block_given?
-        paginated_get(next_uri,options, &block)
+        paginated_get(next_uri, options, &block)
       else
-        unless data_arr=@container_cache.get(next_uri+options.to_s) 
-          data_arr=paginated_get(next_uri, options)
-          @container_cache.set(next_uri+options.to_s,data_arr)
+        unless data_arr = @container_cache.get(next_uri + options.to_s)
+          data_arr = paginated_get(next_uri, options)
+          @container_cache.set(next_uri + options.to_s, data_arr)
         end
         data_arr.map do |data|
           object_class = Jive.const_get "#{data['type'].capitalize}"

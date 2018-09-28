@@ -1,3 +1,6 @@
+$LOAD_PATH.unshift File.expand_path("../lib", __FILE__)
+require "jive/version"
+
 Gem::Specification.new do |s|
   s.name        = 'jive_api'
   s.version     = Jive::VERSION
